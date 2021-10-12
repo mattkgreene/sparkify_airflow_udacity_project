@@ -14,6 +14,8 @@ from helpers import analysis_queries
 # AWS_KEY = os.environ.get('AWS_KEY')
 # AWS_SECRET = os.environ.get('AWS_SECRET')
 
+log_path = "s3://udacity-dend/log_json_path.json"
+
 default_args = {
     'owner': 'mkg',
     'depends_on_past': False,
@@ -24,7 +26,7 @@ default_args = {
     'start_date': datetime.now(),
 }
 
-dag = DAG('udacity_dag',
+dag = DAG('udacity',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
           schedule_interval='@hourly',
@@ -49,7 +51,8 @@ stage_songs_to_redshift = StageToRedshiftOperator(
     aws_credentials_id = "aws_credentials",
     s3_bucket = "udacity-dend",
     s3_key = "song_data",
-    table="public.staging_songs"
+    table="public.staging_songs",
+    extra="format as json 'auto' "
 )
 
 stage_events_to_redshift = StageToRedshiftOperator(
@@ -59,7 +62,8 @@ stage_events_to_redshift = StageToRedshiftOperator(
     aws_credentials_id = "aws_credentials",
     s3_bucket = "udacity-dend",
     s3_key = "log_data",
-    table="public.staging_events"
+    table="public.staging_events",
+    extra=f"JSON '{log_path}' "
 )
 
 load_songplays_table = LoadFactOperator(
@@ -125,14 +129,10 @@ create_tables >> stage_songs_to_redshift
 create_tables >> stage_events_to_redshift
 stage_events_to_redshift >> load_songplays_table
 stage_songs_to_redshift >> load_songplays_table
-stage_events_to_redshift >> load_song_dimension_table
-stage_songs_to_redshift >> load_song_dimension_table
-stage_events_to_redshift >> load_user_dimension_table
-stage_songs_to_redshift >> load_user_dimension_table
-stage_events_to_redshift >> load_artist_dimension_table
-stage_songs_to_redshift >> load_artist_dimension_table
+load_songplays_table >> load_song_dimension_table
+load_songplays_table >> load_user_dimension_table
+load_songplays_table >> load_artist_dimension_table
 load_songplays_table >> load_time_dimension_table
-load_songplays_table >> run_quality_checks
 load_song_dimension_table >> run_quality_checks
 load_user_dimension_table >> run_quality_checks
 load_artist_dimension_table >> run_quality_checks

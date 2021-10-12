@@ -14,7 +14,8 @@ class CustomException(Exception):
 class DataQualityOperator(BaseOperator):
 
     ui_color = '#89DA59'
-
+    
+    # set default parameters, which are passed in
     @apply_defaults
     def __init__(self,
                  # Define your operators params (with defaults) here
@@ -30,8 +31,12 @@ class DataQualityOperator(BaseOperator):
         # self.conn_id = conn_id
         self.redshift_conn_id = redshift_conn_id,
         self.queries = queries
-
+    # execute SQL analysis queries
     def execute(self, context):
+        """
+        Executes SQL Statements passed in through the queries param
+        If a SQL query returns nulls then this function raises an error.
+        """
         self.log.info('DataQualityOperator starting analysis')
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
         for i in range(0, len(self.queries)):

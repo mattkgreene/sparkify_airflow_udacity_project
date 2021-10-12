@@ -27,6 +27,11 @@ class LoadFactOperator(BaseOperator):
         self.mode = mode
 
     def execute(self, context):
+        """
+        Executes SQL Statement passed in through the query
+        This function should be used to create a fact table from a table stored
+        on the RDS
+        """
         self.log.info('LoadFactOperator starting insert')
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
         if self.mode == "delete":

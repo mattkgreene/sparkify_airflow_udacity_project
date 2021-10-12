@@ -5,20 +5,13 @@ from airflow.utils.decorators import apply_defaults
 
 class StageToRedshiftOperator(BaseOperator):
     ui_color = '#358140'
-    staging_sql_template = """
-    DROP TABLE IF EXISTS {destination_table};
-    COPY {destination_table} 
-    FROM {s3_origin_location}
-    region 'us-west-2'
-    format as json 'auto'
-    """
     
     copy_sql = """
     COPY {}
     FROM '{}'
     ACCESS_KEY_ID '{}'
     SECRET_ACCESS_KEY '{}'
-    format as json 'auto' ;
+    {} ;
     """
     
     @apply_defaults
@@ -31,7 +24,7 @@ class StageToRedshiftOperator(BaseOperator):
                  table="",
                  s3_bucket="",
                  s3_key="",
-                 ignore_headers=1,
+                 extra="",
                  *args, **kwargs):
 
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
@@ -43,10 +36,15 @@ class StageToRedshiftOperator(BaseOperator):
         self.s3_bucket = s3_bucket
         self.s3_key = s3_key
         # self.delimiter = delimiter
-        self.ignore_headers = ignore_headers
+        self.extra = extra
         self.aws_credentials_id = aws_credentials_id
 
     def execute(self, context):
+        """
+        Executes SQL Copy statement, which is defined at the top of the class.
+        This function is specifically used to copy data from S3 Buckets to
+        an AWS Redshift Cluster DW
+        """
         self.log.info('StageToRedshiftOperator starting')
         aws_hook = AwsBaseHook(self.aws_credentials_id, client_type='s3')
         credentials = aws_hook.get_credentials()
@@ -62,7 +60,8 @@ class StageToRedshiftOperator(BaseOperator):
             self.table,
             s3_path,
             credentials.access_key,
-            credentials.secret_key
+            credentials.secret_key,
+            self.extra
         )
         redshift.run(formatted_sql)
 

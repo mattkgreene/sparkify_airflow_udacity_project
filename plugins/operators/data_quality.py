@@ -1,0 +1,45 @@
+from airflow.hooks.postgres_hook import PostgresHook
+from airflow.models import BaseOperator
+from airflow.utils.decorators import apply_defaults
+
+
+# create a custom exception class to raise when nulls are present
+class CustomException(Exception):
+    def __init__(self, *args):
+        self.message = args[0]
+    
+    def __str__(self):
+        return f'{self.message}'
+
+class DataQualityOperator(BaseOperator):
+
+    ui_color = '#89DA59'
+
+    @apply_defaults
+    def __init__(self,
+                 # Define your operators params (with defaults) here
+                 # Example:
+                 # conn_id = your-connection-name
+                 redshift_conn_id="",
+                 queries=[],
+                 *args, **kwargs):
+
+        super(DataQualityOperator, self).__init__(*args, **kwargs)
+        # Map params here
+        # Example:
+        # self.conn_id = conn_id
+        self.redshift_conn_id = redshift_conn_id,
+        self.queries = queries
+
+    def execute(self, context):
+        self.log.info('DataQualityOperator starting analysis')
+        redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
+        for i in range(0, len(self.queries)):
+            self.log.info('DataQualityOperator running analysis: ' + str(i) + ' ' + str(len(self.queries)-1))
+            analysisSql = self.queries[i]
+            ret = redshift.get_first(analysisSql)
+            if ret == None:
+               self.log.info('Table is Valid')
+            else:
+                self.log.info('Table has nulls' + "... query = " + analysisSql)
+                raise CustomException("Table has nulls")

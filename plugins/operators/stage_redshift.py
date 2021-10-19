@@ -47,7 +47,9 @@ class StageToRedshiftOperator(BaseOperator):
         """
         self.log.info('StageToRedshiftOperator starting')
         aws_hook = AwsBaseHook(self.aws_credentials_id, client_type='s3')
+        self.log.info("Getting Credentials from aws hook")
         credentials = aws_hook.get_credentials()
+        self.log.info("Connecting to Postgre Hook with redshift conn id")
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
 
         self.log.info("Clearing data from destination Redshift table")
@@ -64,6 +66,7 @@ class StageToRedshiftOperator(BaseOperator):
             self.extra
         )
         redshift.run(formatted_sql)
+        self.log.info("Copy s3 to redshift finished")
 
 
 

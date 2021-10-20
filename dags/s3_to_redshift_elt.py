@@ -26,7 +26,7 @@ default_args = {
     'start_date': datetime.now(),
 }
 
-dag = DAG('udacity',
+dag = DAG('sparfiky_project',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
           schedule_interval='@hourly',
@@ -34,14 +34,6 @@ dag = DAG('udacity',
         )
 
 start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
-
-
-create_tables = PostgresOperator(
-    task_id="create_staging_songs_table",
-    dag=dag,
-    postgres_conn_id="redshift",
-    sql=SqlQueries.create_tables
-)
 
 
 stage_songs_to_redshift = StageToRedshiftOperator(
